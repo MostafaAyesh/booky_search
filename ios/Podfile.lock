@@ -1,0 +1,22 @@
+PODS:
+  - Flutter (1.0.0)
+  - image_picker (0.0.1):
+    - Flutter
+
+DEPENDENCIES:
+  - Flutter (from `/Users/mostafa/Git/flutter/bin/cache/artifacts/engine/ios`)
+  - image_picker (from `/Users/mostafa/.pub-cache/hosted/pub.dartlang.org/image_picker-0.2.1/ios`)
+
+EXTERNAL SOURCES:
+  Flutter:
+    :path: /Users/mostafa/Git/flutter/bin/cache/artifacts/engine/ios
+  image_picker:
+    :path: /Users/mostafa/.pub-cache/hosted/pub.dartlang.org/image_picker-0.2.1/ios
+
+SPEC CHECKSUMS:
+  Flutter: 7eb41cd1fd524b90d7f22bceb20da2c39338b089
+  image_picker: ee00aab0487cedc80a304085219503cc6d0f2e22
+
+PODFILE CHECKSUM: cc70c01bca487bebd110b87397f017f3b76a89f1
+
+COCOAPODS: 1.4.0
