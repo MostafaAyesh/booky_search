@@ -1,4 +1,4 @@
-name: booky_search
+name: Booky
 description: A new Flutter project.
 
 dependencies:
@@ -10,7 +10,9 @@ dependencies:
   cupertino_icons: ^0.1.0
   image_picker: ^0.2.1
   url_launcher: "^2.0.1"
-
+  googleapis: any
+  googleapis_auth: any
+  share: any
 
 
 

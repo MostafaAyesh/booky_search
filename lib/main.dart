@@ -7,24 +7,44 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
+import 'package:googleapis_auth/auth_io.dart';
+import 'package:googleapis/vision/v1.dart' as vis;
+import 'package:googleapis/books/v1.dart' as bk;
+import 'package:share/share.dart';
+
+
+final _credentials = new ServiceAccountCredentials.fromJson(r'''''');
+
+const _SCOPES = const [vis.VisionApi.CloudVisionScope, bk.BooksApi.BooksScope];
+
+vis.ImagesResourceApi visionApi = null;
+bk.VolumesResourceApi booksApi = null;
+var mainDrawer = new Drawer(
+  child: new ListView(
+    children: <Widget>[
+      new DrawerHeader(child: new Text("")),
+    ],
+  ),
+);
 
 void main() {
+  clientViaServiceAccount(_credentials, _SCOPES).then((http_client) {
+    visionApi = new vis.VisionApi(http_client).images;
+    booksApi = new bk.BooksApi(http_client).volumes;
+  });
   runApp(new MaterialApp(
       home: new MyHomePage(),
       routes: {"/Book": (BuildContext context) => new BookPage()}));
 }
 
-const _auth =
-    "ya29.c.El9QBRWzYt5DgNgFBQtcEtcwtnGX-OhPsQP7qavYCMJv5g21NaRqrQmWaroob1IINFNjUDRPZ1LLMv8vmaY-Ir9NN-hOi-xqul1KQBkX7X0K9DHGRGTtaAmAGsI-uggYOg";
-const _apiKey = "AIzaSyCNKQcyPqgtEcXAHunIlrJc6N8jqrbJokA";
-const _gapiKey = "pGVz089i9K8O82KYcaY2g";
 var bookName = "";
+var bookTitle = "";
 var authorName = "";
 var publisherName = "";
 var bookDescription = "";
 var bookUrl = "";
 var imageLink = "";
-
+var thumbURL = "";
 
 Future<File> _imageFile;
 
@@ -38,65 +58,49 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  Future<String> getLabel(String encodedImage) async {
-    var _body =
-        "{\"requests\": [{\"image\": {\"content\": \"$encodedImage\"},\"features\": [{\"type\": \"WEB_DETECTION\",\"maxResults\": 1}]}]}";
-//  print("BODY: $_body");
-    var request = await http.post(
-        Uri.encodeFull("https://vision.googleapis.com/v1/images:annotate"),
-        headers: {
-          "Authorization": "Bearer $_auth",
-        },
-        body: _body.toString());
-//  await io.sleep(new Duration(milliseconds: 5000));
-    bookName = JSON.decode(request.body)["responses"][0]["webDetection"]
-        ["webEntities"][0]["description"];
-    print("Book Name: $bookName");
-    var searchUrl =
-        "https://www.googleapis.com/books/v1/volumes?q=$bookName&key=$_apiKey";
-    await http.get(searchUrl).then(onValue);
-  }
-
-  void onValue(Response responseString) {
-    publisherName =
-        JSON.decode(responseString.body)['items'][0]['volumeInfo']["publisher"];
-    bookDescription = JSON.decode(responseString.body)['items'][0]['volumeInfo']
-        ["description"];
-    print(JSON.decode(responseString.body)['items'][0]);
-    switchPage();
-  }
-
-  String encodedImage;
-  Future imageReq(String encI) async {
-    await getLabel(encI);
+  Future searchRequest(AsyncSnapshot<File> imageFile) async {
+    var searchFeatures = [new vis.Feature()];
+    searchFeatures[0].type = "WEB_DETECTION";
+    searchFeatures[0].maxResults = 1;
+    var imageRequest = new vis.AnnotateImageRequest();
+    var imageApiFile = new vis.Image();
+    imageApiFile.contentAsBytes = (imageFile.data).readAsBytesSync();
+    imageRequest.image = imageApiFile;
+    imageRequest.features = searchFeatures;
+    var imageRequests = new vis.BatchAnnotateImagesRequest();
+    imageRequests.requests = [imageRequest];
+    vis.BatchAnnotateImagesResponse responses =
+        await visionApi.annotate(imageRequests);
+    List jsonResponses = responses.toJson()['responses'];
+    var bookName =
+        jsonResponses[0]['webDetection']['webEntities'][0]["description"];
+    var bookSearchResults;
+    await booksApi.list(bookName, maxResults: 1).then((volumes) {
+      bookSearchResults = volumes.toJson();
+      bookTitle = bookSearchResults['items'][0]['volumeInfo']["title"];
+      authorName = bookSearchResults['items'][0]['volumeInfo']["authors"][0];
+      bookDescription =
+          bookSearchResults['items'][0]['volumeInfo']["description"];
+      bookUrl = bookSearchResults['items'][0]['volumeInfo']["infoLink"];
+      thumbURL = bookSearchResults['items'][0]['volumeInfo']["imageLinks"]['thumbnail'];
+      Navigator.of(context).pushNamed("/Book");
+    });
   }
 
   @override
   void initState() {
-    var bookName = "";
-    var authorName = "";
-    var publisherName = "";
-    var bookDescription = "";
-
-//    _imageFile = null;
     super.initState();
   }
 
   @override
   void dispose() {
-//    _imageFile = null;
     super.dispose();
-  }
-
-  void switchPage() {
-//    _imageFile = null;
-    Navigator.of(context).pushNamed("/Book");
-    deactivate();
   }
 
   @override
   Widget build(BuildContext context) {
     return new Scaffold(
+      drawer: mainDrawer,
       appBar: new AppBar(
         title: const Text('Booky'),
       ),
@@ -105,14 +109,8 @@ class _MyHomePageState extends State<MyHomePage> {
               future: _imageFile,
               builder: (BuildContext context, AsyncSnapshot<File> snapshot) {
                 if (snapshot.connectionState == ConnectionState.done) {
-                  var img = (snapshot.data).readAsBytesSync();
-                  String base64 = BASE64.encode(img) as String;
+                  searchRequest(snapshot);
                   _imageFile = null;
-                  encodedImage = base64 as String;
-
-//                  print(encodedImage);
-                  imageReq(encodedImage);
-
                   return new CircularProgressIndicator();
                 } else {
                   return const Text('You have not yet picked an image.');
@@ -137,10 +135,9 @@ class BookPage extends StatefulWidget {
 }
 
 class _BookPageState extends State<BookPage> {
-
   Future<Null> _launchInWebViewOrVC(String url) async {
     if (await canLaunch(url)) {
-      await launch(url, forceSafariVC: true, forceWebView: true);
+      await launch(url, forceSafariVC: true, forceWebView: false);
     } else {
       throw 'Could not launch $url';
     }
@@ -153,23 +150,27 @@ class _BookPageState extends State<BookPage> {
     return new MaterialApp(
         home: new Scaffold(
             appBar: new AppBar(
+                actions: [
+                  new IconButton(icon: new Icon(Icons.share), onPressed: (){
+                    share("I found $bookTitle by $authorName using Booky! Link: $bookUrl");
+                  })
+                ],
                 leading: new IconButton(
                     icon: new Icon(Icons.arrow_back),
                     onPressed: () {
-                      Navigator.of(context).pushNamed("/");
+                      Navigator.of(context).pop();
                     }),
                 centerTitle: true,
                 title: new Text("Search Results")),
             body: new SingleChildScrollView(
               child: new Column(
                 children: <Widget>[
-//            new Image(
+                  new Container(child: new Image(image: new Image.network(thumbURL).image),decoration: new BoxDecoration(shape: BoxShape.rectangle)),
                   new Card(
                       child: new Column(
                     children: <Widget>[
-                      new Image(image: new AssetImage("assets/book.jpg"), width: 200.0, height: 200.0,),
                       new Padding(
-                          child: new Text("$bookName",
+                          child: new Text("$bookTitle",
                               style: new TextStyle(
                                   fontWeight: FontWeight.bold, fontSize: 14.0)),
                           padding: new EdgeInsets.all(20.0))
@@ -179,10 +180,10 @@ class _BookPageState extends State<BookPage> {
                       child: new Padding(
                     child: new Row(
                       children: <Widget>[
-                        new Text("Publisher:\t",
+                        new Text("Author: ",
                             style: new TextStyle(
                                 fontWeight: FontWeight.bold, fontSize: 14.0)),
-                        new Text("$publisherName",
+                        new Text("$authorName",
                             style: new TextStyle(fontSize: 14.0))
                       ],
                     ),
