@@ -8,14 +8,14 @@ PODS:
     - Flutter
 
 DEPENDENCIES:
-  - Flutter (from `/Users/mostafa/Git/flutter/bin/cache/artifacts/engine/ios-release`)
+  - Flutter (from `/Users/mostafa/Git/flutter/bin/cache/artifacts/engine/ios`)
   - image_picker (from `/Users/mostafa/.pub-cache/hosted/pub.dartlang.org/image_picker-0.2.1/ios`)
   - share (from `/Users/mostafa/.pub-cache/hosted/pub.dartlang.org/share-0.3.1/ios`)
   - url_launcher (from `/Users/mostafa/.pub-cache/hosted/pub.dartlang.org/url_launcher-2.0.1/ios`)
 
 EXTERNAL SOURCES:
   Flutter:
-    :path: /Users/mostafa/Git/flutter/bin/cache/artifacts/engine/ios-release
+    :path: /Users/mostafa/Git/flutter/bin/cache/artifacts/engine/ios
   image_picker:
     :path: /Users/mostafa/.pub-cache/hosted/pub.dartlang.org/image_picker-0.2.1/ios
   share:

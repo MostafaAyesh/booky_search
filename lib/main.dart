@@ -1,19 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:http/http.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:googleapis_auth/auth_io.dart';
 import 'package:googleapis/vision/v1.dart' as vis;
 import 'package:googleapis/books/v1.dart' as bk;
 import 'package:share/share.dart';
-
-
-final _credentials = new ServiceAccountCredentials.fromJson(r'''''');
+import 'creds.dart';
 
 const _SCOPES = const [vis.VisionApi.CloudVisionScope, bk.BooksApi.BooksScope];
 
@@ -28,7 +23,7 @@ var mainDrawer = new Drawer(
 );
 
 void main() {
-  clientViaServiceAccount(_credentials, _SCOPES).then((http_client) {
+  clientViaServiceAccount(credentials, _SCOPES).then((http_client) {
     visionApi = new vis.VisionApi(http_client).images;
     booksApi = new bk.BooksApi(http_client).volumes;
   });
@@ -69,20 +64,17 @@ class _MyHomePageState extends State<MyHomePage> {
     imageRequest.features = searchFeatures;
     var imageRequests = new vis.BatchAnnotateImagesRequest();
     imageRequests.requests = [imageRequest];
-    vis.BatchAnnotateImagesResponse responses =
+    vis.BatchAnnotateImagesResponse batchResponse =
         await visionApi.annotate(imageRequests);
-    List jsonResponses = responses.toJson()['responses'];
     var bookName =
-        jsonResponses[0]['webDetection']['webEntities'][0]["description"];
-    var bookSearchResults;
+        batchResponse.responses[0].webDetection.bestGuessLabels[0].label;
     await booksApi.list(bookName, maxResults: 1).then((volumes) {
-      bookSearchResults = volumes.toJson();
-      bookTitle = bookSearchResults['items'][0]['volumeInfo']["title"];
-      authorName = bookSearchResults['items'][0]['volumeInfo']["authors"][0];
-      bookDescription =
-          bookSearchResults['items'][0]['volumeInfo']["description"];
-      bookUrl = bookSearchResults['items'][0]['volumeInfo']["infoLink"];
-      thumbURL = bookSearchResults['items'][0]['volumeInfo']["imageLinks"]['thumbnail'];
+      var volInfo = volumes.items[0].volumeInfo;
+      bookTitle = volInfo.title;
+      authorName = volInfo.authors[0];
+      bookDescription = volInfo.description;
+      bookUrl = volInfo.infoLink;
+      thumbURL = volInfo.imageLinks.thumbnail;
       Navigator.of(context).pushNamed("/Book");
     });
   }
@@ -143,6 +135,8 @@ class _BookPageState extends State<BookPage> {
     }
   }
 
+  // TODO: Using a builder to generate the search results
+  // TODO: Redesign the layout and make it fit the width of the display
   @override
   Widget build(BuildContext context) {
     Future<Null> _launched;
@@ -151,9 +145,12 @@ class _BookPageState extends State<BookPage> {
         home: new Scaffold(
             appBar: new AppBar(
                 actions: [
-                  new IconButton(icon: new Icon(Icons.share), onPressed: (){
-                    share("I found $bookTitle by $authorName using Booky! Link: $bookUrl");
-                  })
+                  new IconButton(
+                      icon: new Icon(Icons.share),
+                      onPressed: () {
+                        share(
+                            "I found $bookTitle by $authorName using Booky! Link: $bookUrl");
+                      })
                 ],
                 leading: new IconButton(
                     icon: new Icon(Icons.arrow_back),
@@ -165,7 +162,10 @@ class _BookPageState extends State<BookPage> {
             body: new SingleChildScrollView(
               child: new Column(
                 children: <Widget>[
-                  new Container(child: new Image(image: new Image.network(thumbURL).image),decoration: new BoxDecoration(shape: BoxShape.rectangle)),
+                  new Container(
+                      child:
+                          new Image(image: new Image.network(thumbURL).image),
+                      decoration: new BoxDecoration(shape: BoxShape.rectangle)),
                   new Card(
                       child: new Column(
                     children: <Widget>[
