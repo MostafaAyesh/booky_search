@@ -18,6 +18,12 @@ var mainDrawer = new Drawer(
   child: new ListView(
     children: <Widget>[
       new DrawerHeader(child: new Text("")),
+      new FlatButton(
+        child: new Row(
+          children: <Widget>[new Icon(Icons.history), new Text("History")],
+        ),
+        onPressed: () {},
+      ),
     ],
   ),
 );
@@ -54,9 +60,11 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   Future searchRequest(AsyncSnapshot<File> imageFile) async {
-    var searchFeatures = [new vis.Feature()];
-    searchFeatures[0].type = "WEB_DETECTION";
+    var searchFeatures = [new vis.Feature(), new vis.Feature()];
+    searchFeatures[0].type = "LABEL_DETECTION";
     searchFeatures[0].maxResults = 1;
+    searchFeatures[1].type = "WEB_DETECTION";
+    searchFeatures[1].maxResults = 1;
     var imageRequest = new vis.AnnotateImageRequest();
     var imageApiFile = new vis.Image();
     imageApiFile.contentAsBytes = (imageFile.data).readAsBytesSync();
@@ -66,17 +74,24 @@ class _MyHomePageState extends State<MyHomePage> {
     imageRequests.requests = [imageRequest];
     vis.BatchAnnotateImagesResponse batchResponse =
         await visionApi.annotate(imageRequests);
-    var bookName =
-        batchResponse.responses[0].webDetection.bestGuessLabels[0].label;
-    await booksApi.list(bookName, maxResults: 1).then((volumes) {
-      var volInfo = volumes.items[0].volumeInfo;
-      bookTitle = volInfo.title;
-      authorName = volInfo.authors[0];
-      bookDescription = volInfo.description;
-      bookUrl = volInfo.infoLink;
-      thumbURL = volInfo.imageLinks.thumbnail;
+    var imageDesc = batchResponse.responses[0].labelAnnotations[0].description;
+    if (["book", "text", "font"].contains(imageDesc.toLowerCase())) {
+      var bookName =
+          batchResponse.responses[0].webDetection.bestGuessLabels[0].label;
+      await booksApi.list(bookName, maxResults: 1).then((volumes) {
+        var volInfo = volumes.items[0].volumeInfo;
+        bookTitle = volInfo.title;
+        authorName = volInfo.authors[0];
+        bookDescription = volInfo.description;
+        bookUrl = volInfo.infoLink;
+        thumbURL = volInfo.imageLinks.thumbnail;
+        Navigator.of(context).pushNamed("/Book");
+      });
+    } else {
+      bookTitle = "NOT A BOOK";
+      print(imageDesc);
       Navigator.of(context).pushNamed("/Book");
-    });
+    }
   }
 
   @override

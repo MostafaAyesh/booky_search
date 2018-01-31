@@ -6,6 +6,7 @@ packages
 .packages
 lib/creds.dart
 .idea/
+.vscode/
 
 # Or the files created by dart2js.
 *.dart.js
