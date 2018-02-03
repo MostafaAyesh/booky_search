@@ -4,6 +4,5 @@ void main() {
   test('Just a test', () {
     var x = 4;
     expect(x, 4);
-    expect(x, 3);
   });
 }
