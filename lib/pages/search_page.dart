@@ -31,8 +31,9 @@ class _SearchPageState extends State<SearchPage> {
     return new Scaffold(
       appBar: appBar,
       body: bodyContent,
-      floatingActionButton: new FloatingActionButton(onPressed: (){
-        searchImage(imageFile).then((result) {bookResult = result;});
+      floatingActionButton: new FloatingActionButton(onPressed: () async{
+        var future = searchImage(imageFile);
+        future.then((result) {bookResult = result; Navigator.popAndPushNamed(context, "/Result");});
       }),
     );
   }

@@ -10,16 +10,16 @@ vis.ImagesResourceApi visionApi;
 bk.VolumesResourceApi booksApi;
 
 const _SCOPES = const [vis.VisionApi.CloudVisionScope, bk.BooksApi.BooksScope];
-Future<BookResult> searchImage(File imageFile) async {
-  clientViaServiceAccount(credentials, _SCOPES).then((http_client) async{
+Future<BookResult> searchImage(File imageFile) {
+  return clientViaServiceAccount(credentials, _SCOPES).then((http_client) async{
     visionApi = new vis.VisionApi(http_client).images;
     booksApi = new bk.BooksApi(http_client).volumes;
-    await searchRequest(imageFile).then((bookResult) {print(bookResult.title);return bookResult; });
+    var request =  searchRequest(imageFile);
+    return request.then((bookResult){return bookResult;});
   });
 }
 
 Future<BookResult> searchRequest(File imageFile) async {
-  var retval;
   var searchFeatures = [new vis.Feature(), new vis.Feature()];
   searchFeatures[0].type = "LABEL_DETECTION";
   searchFeatures[0].maxResults = 1;
@@ -38,7 +38,7 @@ Future<BookResult> searchRequest(File imageFile) async {
   if (["book", "text", "font"].contains(imageDesc.toLowerCase())) {
     var bookName =
         batchResponse.responses[0].webDetection.bestGuessLabels[0].label;
-    await booksApi.list(bookName, maxResults: 1).then((volumes) {
+    return booksApi.list(bookName, maxResults: 1).then((volumes) {
 
       // There is a null issue if one of the params doesn't exist
       // TODO: Fix Null Problem
@@ -49,8 +49,9 @@ Future<BookResult> searchRequest(File imageFile) async {
       var infoLink = volInfo.infoLink;
       var thumbLink = volInfo.imageLinks.thumbnail;
 //      print(bookTitle);
-      retval = new BookResult(bookTitle, bookAuthor, bookDesc, infoLink, thumbLink);
-    }).whenComplete((){return retval;});
+      var retval = new BookResult(bookTitle, bookAuthor, bookDesc, infoLink, thumbLink);
+      return retval;
+    });
   } else {
 
   }
