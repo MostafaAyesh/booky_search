@@ -9,11 +9,15 @@ import 'package:googleapis/vision/v1.dart' as vis;
 import 'package:googleapis/books/v1.dart' as bk;
 import 'package:share/share.dart';
 import 'creds.dart';
+import "package:Booky/pages/home_page.dart";
+import "package:Booky/pages/search_page.dart";
+import "package:Booky/pages/result_page.dart";
 
 const _SCOPES = const [vis.VisionApi.CloudVisionScope, bk.BooksApi.BooksScope];
 
-vis.ImagesResourceApi visionApi = null;
-bk.VolumesResourceApi booksApi = null;
+vis.ImagesResourceApi visionApi;
+bk.VolumesResourceApi booksApi;
+
 var mainDrawer = new Drawer(
   child: new ListView(
     children: <Widget>[
@@ -34,8 +38,15 @@ void main() {
     booksApi = new bk.BooksApi(http_client).volumes;
   });
   runApp(new MaterialApp(
-      home: new MyHomePage(),
-      routes: {"/Book": (BuildContext context) => new BookPage()}));
+    home: new HomePage(),
+    routes: {
+      "/Search": (BuildContext context) => new SearchPage(),
+      "/Result": (BuildContext context) => new ResultPage(),
+    },
+  ));
+//  runApp(new MaterialApp(
+//      home: new MyHomePage(),
+//      routes: {"/Book": (BuildContext context) => new BookPage()}));
 }
 
 var bookName = "";
