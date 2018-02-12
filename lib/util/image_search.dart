@@ -21,35 +21,43 @@ Future<BookResult> searchImage(File imageFile) async {
 }
 
 Future<BookResult> searchRequest(File imageFile) async {
+  // Create AnnotateImageRequest
+  var imageRequest = new vis.AnnotateImageRequest();
+
+  // Setup Search Features
   var searchFeatures = [new vis.Feature(), new vis.Feature()];
   searchFeatures[0].type = "LABEL_DETECTION";
   searchFeatures[0].maxResults = 1;
   searchFeatures[1].type = "WEB_DETECTION";
   searchFeatures[1].maxResults = 1;
-  var imageRequest = new vis.AnnotateImageRequest();
+  imageRequest.features = searchFeatures;
+
+  // Add the image to the request
   var imageApiFile = new vis.Image();
   imageApiFile.contentAsBytes = imageFile.readAsBytesSync();
   imageRequest.image = imageApiFile;
-  imageRequest.features = searchFeatures;
+
+  // Create and submit BatchAnnotateImagesRequest
   var imageRequests = new vis.BatchAnnotateImagesRequest();
   imageRequests.requests = [imageRequest];
   vis.BatchAnnotateImagesResponse batchResponse =
       await visionApi.annotate(imageRequests);
-  var imageDesc = batchResponse.responses[0].labelAnnotations[0].description;
+
+  // Process the response and return the book result
+  var imageDesc = batchResponse.responses[0].labelAnnotations[0].description; // Only the first response because we only have a single request
   if (["book", "text", "font"].contains(imageDesc.toLowerCase())) {
     var bookName =
         batchResponse.responses[0].webDetection.bestGuessLabels[0].label;
     return booksApi.list(bookName, maxResults: 1).then((volumes) {
-      // There is a null issue if one of the params doesn't exist
-      // TODO: Fix Null Problem
       var volInfo = volumes.items[0].volumeInfo;
-      var bookTitle = volInfo.title;
-      var bookAuthor = volInfo.authors[0];
-      var bookDesc = volInfo.description;
-      var infoLink = volInfo.infoLink;
-      var thumbLink = volInfo.imageLinks.thumbnail;
+      // This handles nulls. Is there a cleaner way though?
       return new BookResult(
-          bookTitle, bookAuthor, bookDesc, infoLink, thumbLink);
+          title: volInfo.title ?? "No Title",
+          author: volInfo.authors[0] ?? "No Author",
+          description: volInfo.description ?? "No Description",
+          infoLink: volInfo.infoLink ?? "https://google.com/",
+          thumbLink: volInfo.imageLinks.thumbnail ??
+              "http://via.placeholder.com/350x150");
     });
   } else {
     return null;
