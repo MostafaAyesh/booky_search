@@ -1,8 +1,10 @@
-# booky_search
+# Booky
 
-A new Flutter project.
+A Cross-Platform mobile app (iOS & Android) that allows the user to search for books by using a picture of the book cover.
 
-## Getting Started
+## Running the app
 
-For help getting started with Flutter, view our online
-[documentation](http://flutter.io/).
+```
+flutter packages get
+flutter run
+```
